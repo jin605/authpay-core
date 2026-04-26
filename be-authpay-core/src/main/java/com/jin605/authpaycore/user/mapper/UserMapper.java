@@ -5,7 +5,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 @Mapper
-public class UserMapper {
+public interface UserMapper {
 
     User findById(@Param("id") Long id);
     User findByEmail(@Param("email") String email);

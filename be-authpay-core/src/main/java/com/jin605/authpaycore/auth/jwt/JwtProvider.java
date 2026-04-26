@@ -6,30 +6,31 @@ import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 @Component
 @RequiredArgsConstructor
 public class JwtProvider {
+
+    private static final String TOKEN_TYPE = "token_type";
+    private static final String ACCESS = "access";
+    private static final String REFRESH = "refresh";
 
     private final JwtUtil jwtUtil;
     private final com.jin605.authpaycore.config.JwtProperties jwtProperties;
 
     public String createAccessToken(Long userId, String email, String role, String status) {
         Map<String, Object> claims = new HashMap<>();
-        claims.put("userId", userId);
         claims.put("email", email);
         claims.put("role", role);
         claims.put("status", status);
-        claims.put("token_type", "access");
+        claims.put(TOKEN_TYPE, ACCESS);
 
         return jwtUtil.createToken(String.valueOf(userId), claims, jwtProperties.getAccessTokenExpirationMs());
     }
 
     public String createRefreshToken(Long userId) {
         Map<String, Object> claims = new HashMap<>();
-        claims.put("userId", userId);
-        claims.put("token_type", "refresh");
+        claims.put(TOKEN_TYPE, REFRESH);
 
         return jwtUtil.createToken(String.valueOf(userId), claims, jwtProperties.getRefreshTokenExpirationMs());
     }
@@ -42,6 +43,18 @@ public class JwtProvider {
         return jwtUtil.parseClaims(token);
     }
 
+    public Long getUserId(String token) {
+        return Long.parseLong(getClaims(token).getSubject());
+    }
+
+    public String getTokenType(String token) {
+        return getClaims(token).get(TOKEN_TYPE, String.class);
+    }
+
+    public boolean isRefreshToken(String token) {
+        return REFRESH.equals(getTokenType(token));
+    }
+
     public String resolveToken(String bearerToken) {
         if (bearerToken == null || bearerToken.isBlank()) {
             return null;
@@ -51,14 +64,5 @@ public class JwtProvider {
         }
         return bearerToken.substring(7);
     }
-
-    public Long getUserId(String token) {
-        return getClaims(token).get("userId", Long.class);
-    }
-
-    public String getTokenType(String token) {
-        return getClaims(token).get("token_type", String.class);
-    }
-
 
 }
