@@ -47,4 +47,11 @@
             (#{name}, #{nickname}, #{email}, #{passwordHash}, #{imageUrl}, #{role}, #{status}, NOW(), NOW())
     </insert>
 
+    <update id="updateImageUrl">
+        UPDATE users
+        SET image_url = #{imageUrl},
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
 </mapper>

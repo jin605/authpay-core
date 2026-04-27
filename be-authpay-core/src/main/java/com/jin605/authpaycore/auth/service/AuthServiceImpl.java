@@ -126,7 +126,7 @@ public class AuthServiceImpl implements AuthService {
 
         accessTokenBlacklistService.blacklist(accessToken);
 
-        Long userId = resolveUserIdForLogout(bearerToken, refreshToken);
+        Long userId = resolveUserIdForLogout(accessToken, refreshToken);
 
         if (userId != null) {
             stringRedisTemplate.delete(refreshKey(userId));

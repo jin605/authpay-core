@@ -11,5 +11,6 @@ public interface UserMapper {
     User findByEmail(@Param("email") String email);
     User findByNickname(@Param("nickname") String nickname);
     int insert(User user);
+    int updateImageUrl(@Param("id") Long id, @Param("imageUrl") String imageUrl);
 
 }
