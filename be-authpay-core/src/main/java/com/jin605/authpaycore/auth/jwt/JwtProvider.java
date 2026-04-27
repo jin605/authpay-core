@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
@@ -14,6 +15,8 @@ public class JwtProvider {
     private static final String TOKEN_TYPE = "token_type";
     private static final String ACCESS = "access";
     private static final String REFRESH = "refresh";
+    private static final String JTI = "jti";
+
 
     private final JwtUtil jwtUtil;
     private final com.jin605.authpaycore.config.JwtProperties jwtProperties;
@@ -24,6 +27,7 @@ public class JwtProvider {
         claims.put("role", role);
         claims.put("status", status);
         claims.put(TOKEN_TYPE, ACCESS);
+        claims.put(JTI, UUID.randomUUID().toString());
 
         return jwtUtil.createToken(String.valueOf(userId), claims, jwtProperties.getAccessTokenExpirationMs());
     }
@@ -55,6 +59,16 @@ public class JwtProvider {
         return REFRESH.equals(getTokenType(token));
     }
 
+    public boolean isAccessToken(String token) {
+        return ACCESS.equals(getTokenType(token));
+    }
+
+    public String getJti (String token) {
+        return getClaims(token).get(JTI, String.class);
+    }
+    public long getRemainingExpirationMs(String token) {
+        return getClaims(token).getExpiration().getTime() - System.currentTimeMillis();
+    }
     public String resolveToken(String bearerToken) {
         if (bearerToken == null || bearerToken.isBlank()) {
             return null;

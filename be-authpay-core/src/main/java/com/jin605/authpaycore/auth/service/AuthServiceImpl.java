@@ -3,6 +3,7 @@ package com.jin605.authpaycore.auth.service;
 import com.jin605.authpaycore.auth.dto.AuthTokens;
 import com.jin605.authpaycore.auth.dto.LoginRequest;
 import com.jin605.authpaycore.auth.dto.SignupRequest;
+import com.jin605.authpaycore.auth.jwt.AccessTokenBlacklistService;
 import com.jin605.authpaycore.auth.jwt.JwtProvider;
 import com.jin605.authpaycore.config.JwtProperties;
 import com.jin605.authpaycore.user.mapper.UserMapper;
@@ -32,6 +33,7 @@ public class AuthServiceImpl implements AuthService {
     private final JwtProvider jwtProvider;
     private final JwtProperties jwtProperties;
     private final StringRedisTemplate stringRedisTemplate;
+    private final AccessTokenBlacklistService accessTokenBlacklistService;
 
     @Override
     public AuthTokens signup(SignupRequest request) {
@@ -115,6 +117,39 @@ public class AuthServiceImpl implements AuthService {
                 user.getRole(),
                 user.getStatus()
         );
+    }
+
+    @Override
+    public void logout(String bearerToken, String refreshToken) {
+
+        String accessToken = jwtProvider.resolveToken(bearerToken);
+
+        accessTokenBlacklistService.blacklist(accessToken);
+
+        Long userId = resolveUserIdForLogout(bearerToken, refreshToken);
+
+        if (userId != null) {
+            stringRedisTemplate.delete(refreshKey(userId));
+        }
+    }
+
+    private Long resolveUserIdForLogout(String accessToken, String refreshToken) {
+        if (refreshToken != null
+        && !refreshToken.isBlank()
+        && jwtProvider.isValidToken(refreshToken)
+        && jwtProvider.isRefreshToken(refreshToken)) {
+
+            return jwtProvider.getUserId(refreshToken);
+
+        }
+
+        if (accessToken != null
+                && jwtProvider.isValidToken(accessToken)
+                && jwtProvider.isAccessToken(accessToken)) {
+            return jwtProvider.getUserId(accessToken);
+        }
+
+        return null;
     }
 
     private AuthTokens issueTokens(User user) {

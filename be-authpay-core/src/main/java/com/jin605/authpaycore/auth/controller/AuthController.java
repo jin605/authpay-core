@@ -16,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -29,27 +30,40 @@ public class AuthController {
     private final AuthService authService;
     private final JwtProperties jwtProperties;
 
-        @PostMapping("/signup")
-        public ResponseEntity<ApiResponse<TokenResponse>> signup(@Valid @RequestBody SignupRequest request) {
+    @PostMapping("/signup")
+    public ResponseEntity<ApiResponse<TokenResponse>> signup(@Valid @RequestBody SignupRequest request) {
 
-            AuthTokens tokens = authService.signup(request);
-            return successWithRefreshCookie(HttpStatus.CREATED, "회원 가입 완료", tokens);
+        AuthTokens tokens = authService.signup(request);
+        return successWithRefreshCookie(HttpStatus.CREATED, "회원 가입 완료", tokens);
 
-        }
+    }
 
-        @PostMapping("/login")
-        public ResponseEntity<ApiResponse<TokenResponse>> login(@Valid @RequestBody LoginRequest request) {
+    @PostMapping("/login")
+    public ResponseEntity<ApiResponse<TokenResponse>> login(@Valid @RequestBody LoginRequest request) {
 
-            AuthTokens tokens = authService.login(request);
-            return successWithRefreshCookie(HttpStatus.OK, "로그인 완료", tokens);
-        }
+        AuthTokens tokens = authService.login(request);
+        return successWithRefreshCookie(HttpStatus.OK, "로그인 완료", tokens);
+    }
 
-        @PostMapping("/refresh")
-        public ResponseEntity<ApiResponse<TokenResponse>> refresh(
-                @CookieValue(name = REFRESH_TOKEN_COOKIE_NAME, defaultValue = "") String refreshToken) {
+    @PostMapping("/refresh")
+    public ResponseEntity<ApiResponse<TokenResponse>> refresh(
+            @CookieValue(name = REFRESH_TOKEN_COOKIE_NAME, defaultValue = "") String refreshToken) {
 
-            AuthTokens tokens = authService.refresh(refreshToken);
-        return successWithRefreshCookie(HttpStatus.OK, "토큰 재발급 완료", tokens);
+        AuthTokens tokens = authService.refresh(refreshToken);
+    return successWithRefreshCookie(HttpStatus.OK, "토큰 재발급 완료", tokens);
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String bearerToken,
+            @CookieValue(name = REFRESH_TOKEN_COOKIE_NAME, defaultValue = "") String refreshToken
+    ) {
+
+        authService.logout(bearerToken, refreshToken);
+
+        return ResponseEntity.noContent()
+                .header(HttpHeaders.SET_COOKIE, createLogoutRefreshTokenCookie().toString())
+                .build();
     }
 
     private ResponseEntity<ApiResponse<TokenResponse>> successWithRefreshCookie(
@@ -91,6 +105,16 @@ public class AuthController {
                 .sameSite("Lax")
                 .path("/")
                 .maxAge(maxAgeSeconds)
+                .build();
+    }
+
+    private ResponseCookie createLogoutRefreshTokenCookie() {
+        return ResponseCookie.from(REFRESH_TOKEN_COOKIE_NAME, "")
+                .httpOnly(true)
+                .secure(false)
+                .sameSite("Lax")
+                .path("/")
+                .maxAge(0)
                 .build();
     }
 
