@@ -1,5 +1,6 @@
 package com.jin605.authpaycore.auth.service;
 
+import com.jin605.authpaycore.auth.dto.AuthTokens;
 import com.jin605.authpaycore.auth.dto.LoginRequest;
 import com.jin605.authpaycore.auth.dto.SignupRequest;
 import com.jin605.authpaycore.auth.jwt.JwtProvider;
@@ -9,6 +10,7 @@ import com.jin605.authpaycore.user.model.User;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -40,7 +42,7 @@ public class AuthServiceImpl implements AuthService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 가입된 이메일입니다.");
         }
 
-        if (userMapper.findByNickname(email) != null) {
+        if (userMapper.findByNickname(request.getNickname().trim()) != null) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 사용 중인 닉네임입니다.");
         }
 
@@ -53,7 +55,11 @@ public class AuthServiceImpl implements AuthService {
                 .status("ACTIVE")
                 .build();
 
-        userMapper.insert(user);
+        try {
+            userMapper.insert(user);
+        } catch (DataIntegrityViolationException e) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 사용 중인 이메일 또는 닉네임입니다.");
+        }
         return issueTokens(user);
     }
 
