@@ -3,6 +3,7 @@ package com.jin605.authpaycore.file.service;
 import com.jin605.authpaycore.config.R2Properties;
 import com.jin605.authpaycore.file.dto.CreatePresignedUploadUrlRequest;
 import com.jin605.authpaycore.file.dto.CreatePresignedUploadUrlResponse;
+import com.jin605.authpaycore.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -32,6 +33,7 @@ public class FileServiceImpl implements FileService {
 
     private final S3Presigner s3Presigner;
     private final R2Properties r2Properties;
+    private final UserMapper userMapper;
 
     @Override
     public CreatePresignedUploadUrlResponse createPresignedUploadUrl(Long userId, CreatePresignedUploadUrlRequest request) {
@@ -61,7 +63,7 @@ public class FileServiceImpl implements FileService {
 
             return CreatePresignedUploadUrlResponse.builder()
                     .uploadUrl(presigned.url().toString())
-                    .filekey(fileKey)
+                    .fileKey(fileKey)
                     .publicUrl(buildPublicUrl(fileKey))
                     .method("PUT")
                     .expiresInSeconds(signatureDuration.toSeconds())
@@ -70,6 +72,26 @@ public class FileServiceImpl implements FileService {
         } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "R2 presigned URL 발급 실패");
         }
+    }
+
+    @Override
+    public String saveProfileImage(Long userId, String fileKey) {
+        if (fileKey == null || fileKey.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "fileKey는 필수입니다.");
+        }
+
+        String expectedPrefix = "temp/users/" + userId + "/";
+        if (!fileKey.startsWith(expectedPrefix)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "본인 업로드 파일만 저장할 수 있습니다.");
+        }
+
+        String imageUrl = buildPublicUrl(fileKey);
+
+        int updated = userMapper.updateImageUrl(userId, imageUrl);
+        if (updated != 1) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다.");
+        }
+        return imageUrl;
     }
 
     private void validateRequest(CreatePresignedUploadUrlRequest request) {

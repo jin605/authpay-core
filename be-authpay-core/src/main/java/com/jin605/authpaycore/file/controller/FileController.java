@@ -3,12 +3,15 @@ package com.jin605.authpaycore.file.controller;
 import com.jin605.authpaycore.auth.dto.ApiResponse;
 import com.jin605.authpaycore.file.dto.CreatePresignedUploadUrlRequest;
 import com.jin605.authpaycore.file.dto.CreatePresignedUploadUrlResponse;
+import com.jin605.authpaycore.file.dto.UpdateProfileImageRequest;
+import com.jin605.authpaycore.file.dto.UpdateProfileImageResponse;
 import com.jin605.authpaycore.file.service.FileService;
 import io.lettuce.core.dynamic.annotation.Value;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -32,6 +35,24 @@ public class FileController {
         CreatePresignedUploadUrlResponse result = fileService.createPresignedUploadUrl(userId, request);
 
         return ApiResponse.of(HttpStatus.OK, null, "Presigned upload URL 발급 완료", result);
+
+    }
+
+    @PatchMapping("/profile-image")
+    public ResponseEntity<ApiResponse<UpdateProfileImageResponse>> saveProfileImage(
+            Authentication authentication,
+            @Value @RequestBody UpdateProfileImageRequest request
+            ) {
+
+        Long userId = extractUserId(authentication);
+        String imageUrl = fileService.saveProfileImage(userId, request.getFileKey());
+
+        UpdateProfileImageResponse result = UpdateProfileImageResponse.builder()
+                .userId(userId)
+                .imageUrl(imageUrl)
+                .build();
+
+        return ApiResponse.of(HttpStatus.OK, null, "프로필 이미지 저장 완료", result);
 
     }
 

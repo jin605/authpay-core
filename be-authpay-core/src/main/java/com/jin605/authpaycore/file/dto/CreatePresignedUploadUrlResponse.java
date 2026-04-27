@@ -7,7 +7,7 @@ import lombok.Getter;
 @Builder
 public class CreatePresignedUploadUrlResponse {
     private String uploadUrl;
-    private String filekey;
+    private String fileKey;
     private String publicUrl;
     private String method;
     private Long expiresInSeconds;
